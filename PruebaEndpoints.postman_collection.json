@@ -1,4 +1,4 @@
-{
+﻿{
   "info": {
     "_postman_id": "f7c4f79d-316f-4c73-8f70-f7b7bcf29211",
     "name": "Construction Material Control API",
@@ -11,16 +11,40 @@
     },
     {
       "key": "engineerToken",
-      "value": "PASTE_ENGINEER_TOKEN_HERE"
+      "value": ""
     },
     {
       "key": "workerToken",
-      "value": "PASTE_WORKER_TOKEN_HERE"
+      "value": ""
+    },
+    {
+      "key": "projectId",
+      "value": "1"
+    },
+    {
+      "key": "projectCode",
+      "value": "OBR-001"
+    },
+    {
+      "key": "materialId",
+      "value": "1"
     }
   ],
   "item": [
     {
       "name": "Auth - Engineer Token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const data = pm.response.json();",
+              "pm.collectionVariables.set('engineerToken', data.token);"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "POST",
         "header": [
@@ -48,6 +72,18 @@
     },
     {
       "name": "Auth - Worker Token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const data = pm.response.json();",
+              "pm.collectionVariables.set('workerToken', data.token);"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "POST",
         "header": [
@@ -99,6 +135,19 @@
     },
     {
       "name": "Projects - Create With Engineer",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const data = pm.response.json();",
+              "pm.collectionVariables.set('projectId', String(data.id));",
+              "pm.collectionVariables.set('projectCode', data.code);"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "POST",
         "header": [
@@ -163,6 +212,18 @@
     },
     {
       "name": "Materials - Create With Worker",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const data = pm.response.json();",
+              "pm.collectionVariables.set('materialId', String(data.id));"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "POST",
         "header": [
@@ -177,7 +238,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"project\": 1,\n  \"category\": \"structure\",\n  \"material_name\": \"HA-25 concrete\",\n  \"supplier\": \"Hormigones Centro\",\n  \"delivery_note\": \"ALB-0500\",\n  \"batch_reference\": \"LOT-HA25-MAY\",\n  \"storage_zone\": \"North silo\",\n  \"received_by\": \"Jorge Cano\",\n  \"unit\": \"m3\",\n  \"planned_quantity\": \"180.00\",\n  \"received_quantity\": \"60.00\",\n  \"consumed_quantity\": \"0.00\",\n  \"unit_cost\": \"92.50\",\n  \"received_on\": \"2026-05-18\",\n  \"quality_checked\": true,\n  \"remarks\": \"Concrete delivery accepted after quality check.\"\n}"
+          "raw": "{\n  \"project\": {{projectId}},\n  \"category\": \"structure\",\n  \"material_name\": \"HA-25 concrete\",\n  \"supplier\": \"Hormigones Centro\",\n  \"delivery_note\": \"ALB-0500\",\n  \"batch_reference\": \"LOT-HA25-MAY\",\n  \"storage_zone\": \"North silo\",\n  \"received_by\": \"Jorge Cano\",\n  \"unit\": \"m3\",\n  \"planned_quantity\": \"180.00\",\n  \"received_quantity\": \"60.00\",\n  \"consumed_quantity\": \"0.00\",\n  \"unit_cost\": \"92.50\",\n  \"received_on\": \"2026-05-18\",\n  \"quality_checked\": true,\n  \"remarks\": \"Concrete delivery accepted after quality check.\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/api/materials/create/",
@@ -212,14 +273,14 @@
           "raw": "{\n  \"consumed_quantity\": \"40.00\",\n  \"remarks\": \"Updated after first slab pour.\"\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/api/materials/1/update/",
+          "raw": "{{baseUrl}}/api/materials/{{materialId}}/update/",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
             "api",
             "materials",
-            "1",
+            "{{materialId}}",
             "update",
             ""
           ]
@@ -237,14 +298,14 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/api/projects/OBR-001/materials-summary/",
+          "raw": "{{baseUrl}}/api/projects/{{projectCode}}/materials-summary/",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
             "api",
             "projects",
-            "OBR-001",
+            "{{projectCode}}",
             "materials-summary",
             ""
           ]

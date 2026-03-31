@@ -1,0 +1,267 @@
+﻿{\rtf1\ansi\deff0
+{\fonttbl{\f0 Calibri;}}
+\fs22
+\b API de Gestion de Proyectos de Construccion con Django REST Framework\b0\par
+\par
+Modulo: Fundamentos de Backend con Python\par
+Alumno: [SUSTITUIR POR TU NOMBRE]\par
+Repositorio GitHub: [PEGAR AQUI LA URL PUBLICA DEL REPOSITORIO]\par
+\par
+\b 1. Introduccion y objetivos del trabajo\b0\par
+Este documento describe el funcionamiento de una API REST desarrollada con Django y Django REST Framework para gestionar proyectos de construccion y el control de materiales recibidos en obra. La aplicacion responde a una logica de negocio coherente: cada obra se modela como un proyecto y cada entrega o registro de material se asocia a esa obra.\par
+\par
+Desde el punto de vista academico, el trabajo permite aplicar modelado de datos, permisos por grupos, vistas genericas, viewsets, una api_view personalizada, uso del ORM y persistencia de datos. La implementacion real del proyecto utiliza SQLite, incorpora documentacion interactiva con `drf-spectacular` y tambien explica como se realizaria una migracion de SQLite a MySQL siguiendo una metodologia similar a la del ejemplo aportado.\par
+\par
+Los objetivos concretos son:\par
+- construir una API con sentido dentro del sector de la construccion\par
+- modelar obras y materiales con relacion real entre ambos\par
+- crear dos grupos de usuarios con restricciones de acceso distintas\par
+- implementar varias formas de exposicion de recursos con Django REST Framework\par
+- ejecutar realmente el proyecto con SQLite\par
+- documentar como se podria migrar la misma solucion a MySQL\par
+\par
+\b 2. Arquitectura del proyecto\b0\par
+El proyecto sigue la estructura habitual de Django con un proyecto principal y una aplicacion que contiene la logica del dominio. Se usan las rutas relativas reales del repositorio para que el codigo explicado pueda localizarse facilmente.\par
+\par
+\b 2.1 Estructura de carpetas y archivos principales\b0\par
+- `backend/manage.py`: punto de entrada para ejecutar migraciones, arrancar el servidor y lanzar pruebas.\par
+- `backend/constru_app/settings.py`: configuracion global del proyecto, REST Framework, drf-spectacular, autenticacion por token y base de datos SQLite.\par
+- `backend/constru_app/urls.py`: rutas principales del proyecto, incluyendo `admin/`, `auth/token/`, `api/schema/`, `api/docs/` y `api/`.\par
+- `backend/constru_app/asgi.py`: configuracion ASGI.\par
+- `backend/constru_app/wsgi.py`: configuracion WSGI.\par
+- `backend/projects/models.py`: modelos `ConstructionProject` y `ProjectMaterial`.\par
+- `backend/projects/serializers.py`: serializers y validaciones del dominio.\par
+- `backend/projects/permissions.py`: permisos reutilizables basados en grupos y permisos de modelo.\par
+- `backend/projects/views.py`: viewset, vistas genericas y api_view personalizada.\par
+- `backend/projects/urls.py`: rutas de la app `projects`.\par
+- `backend/projects/tests.py`: pruebas automatizadas.\par
+- `backend/projects/management/commands/bootstrap_demo.py`: comando para crear usuarios y datos demo reproducibles en local.\par
+- `backend/projects/migrations/0001_initial.py`: migracion inicial de tablas.\par
+- `backend/projects/migrations/0002_create_groups.py`: migracion que crea los grupos `Engineers` y `Workers`.\par
+- `backend/.env.example`: variables de entorno de ejemplo.\par
+- `backend/convert-utf8.py`: script para convertir un volcado a UTF-8 si fuera necesario.\par
+- `backend/db.sqlite3`: base de datos SQLite del proyecto.\par
+- `README.md`: guia de instalacion, Swagger y notas sobre migracion a MySQL.\par
+- `PruebaEndpoints.postman_collection.json`: coleccion Postman preparada para guardar tokens e identificadores de forma dinamica.\par
+- `public/Memoria_API_Construccion.rtf`: memoria del trabajo.\par
+\par
+\b 2.2 Dependencias principales\b0\par
+Las dependencias actuales del proyecto son:\par
+- Django: framework principal del proyecto.\par
+- djangorestframework: capa para construir la API REST.\par
+- drf-spectacular: generacion del esquema OpenAPI y Swagger UI.\par
+- python-dotenv: lectura de configuracion local desde archivos `.env`.\par
+\par
+\b 3. Dominio funcional de la API\b0\par
+La API representa una situacion realista en el ambito de la construccion. Una empresa puede tener varias obras activas, y para cada una necesita controlar las entradas de materiales recibidos. La relacion entre proyectos y materiales tiene sentido funcional y evita una tematica artificial o inconexa.\par
+\par
+\b 3.1 Modelo ConstructionProject\b0\par
+El modelo `ConstructionProject`, definido en `backend/projects/models.py`, representa una obra. Sus campos principales son:\par
+- `code`\par
+- `name`\par
+- `project_type`\par
+- `client_name`\par
+- `site_address`\par
+- `city`\par
+- `project_manager`\par
+- `engineer_in_charge`\par
+- `contract_reference`\par
+- `start_date`\par
+- `expected_end_date`\par
+- `budget`\par
+- `status`\par
+- `progress_percentage`\par
+- `notes`\par
+\par
+\b 3.2 Modelo ProjectMaterial\b0\par
+El modelo `ProjectMaterial`, definido tambien en `backend/projects/models.py`, representa una entrada de material asociada a un proyecto. Sus campos principales son:\par
+- `project`\par
+- `category`\par
+- `material_name`\par
+- `supplier`\par
+- `delivery_note`\par
+- `batch_reference`\par
+- `storage_zone`\par
+- `received_by`\par
+- `unit`\par
+- `planned_quantity`\par
+- `received_quantity`\par
+- `consumed_quantity`\par
+- `unit_cost`\par
+- `received_on`\par
+- `quality_checked`\par
+- `remarks`\par
+- `updated_at`\par
+\par
+\b 4. Gestion de usuarios, grupos y permisos\b0\par
+El proyecto incorpora dos grupos claramente diferenciados, creados desde la migracion `backend/projects/migrations/0002_create_groups.py`:\par
+- `Engineers`\par
+- `Workers`\par
+\par
+La logica de permisos se implementa en `backend/projects/permissions.py` y responde al enunciado:\par
+- Los `Engineers` tienen control completo sobre proyectos y materiales.\par
+- Los `Workers` pueden consultar proyectos y materiales y registrar nuevas entradas de material.\par
+- Los `Workers` no pueden crear proyectos.\par
+- Los `Workers` no pueden modificar ni borrar materiales ya existentes.\par
+\par
+Para facilitar las pruebas manuales, el proyecto incluye el comando `py .\manage.py bootstrap_demo`, que crea o actualiza:\par
+- usuario `engineer` con password `engineer123`\par
+- usuario `worker` con password `worker123`\par
+- proyecto demo `OBR-001`\par
+- un material demo asociado\par
+- tokens de autenticacion para ambos usuarios\par
+\par
+\b 5. Exposicion de la API con Django REST Framework\b0\par
+En `backend/projects/views.py` se combinan diferentes mecanismos de DRF para cumplir el ejercicio de forma clara y reutilizable.\par
+\par
+\b 5.1 Viewset\b0\par
+El requisito de al menos un viewset se cubre con `ProjectViewSet`, que expone operaciones CRUD sobre `ConstructionProject`.\par
+\par
+Rutas principales:\par
+- `GET /api/projects/viewset/`\par
+- `POST /api/projects/viewset/`\par
+- `GET /api/projects/viewset/<code>/`\par
+- `PUT /api/projects/viewset/<code>/`\par
+- `PATCH /api/projects/viewset/<code>/`\par
+- `DELETE /api/projects/viewset/<code>/`\par
+\par
+\b 5.2 Vistas genericas\b0\par
+Para `ConstructionProject` existen cuatro vistas genericas distintas:\par
+- `ProjectListAPIView`\par
+- `ProjectCreateAPIView`\par
+- `ProjectDetailAPIView`\par
+- `ProjectUpdateAPIView`\par
+\par
+Para `ProjectMaterial` existen otras cuatro:\par
+- `MaterialListAPIView`\par
+- `MaterialCreateAPIView`\par
+- `MaterialDetailAPIView`\par
+- `MaterialUpdateAPIView`\par
+\par
+\b 5.3 API personalizada\b0\par
+La funcion `project_materials_summary`, definida en `backend/projects/views.py`, cumple el requisito de tener una `api_view` propia que enlace modelos. Esta vista devuelve el proyecto, todos sus materiales y un resumen agregado de cantidades.\par
+\par
+Ruta:\par
+- `GET /api/projects/<code>/materials-summary/`\par
+\par
+\b 5.4 OpenAPI y Swagger\b0\par
+La documentacion interactiva se genera con `drf-spectacular`. El esquema OpenAPI se expone en:\par
+- `GET /api/schema/`\par
+\par
+La interfaz Swagger UI se expone en:\par
+- `GET /api/docs/`\par
+\par
+Desde Swagger es posible inspeccionar y probar la API incluyendo el token de autenticacion con el formato `Token <tu_token>`.\par
+\par
+\b 6. Validacion, DRY y calidad del codigo\b0\par
+El proyecto aplica DRY mediante mixins reutilizables en `backend/projects/views.py`, permisos centralizados en `backend/projects/permissions.py` y validaciones concentradas en `backend/projects/serializers.py`.\par
+\par
+Las validaciones principales son:\par
+- `expected_end_date` no puede ser anterior a `start_date`\par
+- `progress_percentage` debe estar entre `0` y `100`\par
+- `received_quantity` no puede superar `planned_quantity`\par
+- `consumed_quantity` no puede superar `received_quantity`\par
+\par
+\b 7. Interaccion entre Django y SQLite\b0\par
+La base de datos realmente implementada en el proyecto es SQLite. Esta configuracion se encuentra en `backend/constru_app/settings.py`, donde Django utiliza el backend `django.db.backends.sqlite3` y guarda la informacion en `backend/db.sqlite3`.\par
+\par
+El flujo real de funcionamiento es este:\par
+1. Django lee la configuracion de `backend/constru_app/settings.py`.\par
+2. La base de datos configurada es SQLite.\par
+3. Al ejecutar `py .\manage.py migrate`, Django crea automaticamente el archivo `backend/db.sqlite3` si todavia no existe.\par
+4. Las migraciones construyen las tablas de usuarios, grupos, permisos y las tablas de `ConstructionProject` y `ProjectMaterial`.\par
+5. El ORM de Django se encarga despues de insertar, consultar, actualizar y eliminar datos en SQLite.\par
+\par
+Esta solucion facilita mucho la portabilidad del proyecto, porque no requiere servidores ni configuracion adicional para funcionar en local.\par
+\par
+\b 8. Exportacion de datos desde SQLite\b0\par
+Aunque el proyecto actual funciona con SQLite, resulta importante explicar como se podrian exportar sus datos para migrarlos a otro sistema, como MySQL.\par
+\par
+El comando de volcado recomendado desde `backend/` es el siguiente:\par
+`py .\manage.py dumpdata --natural-foreign --natural-primary -e contenttypes -e auth.permission --indent 4 --output datadump.json`\par
+\par
+Este comando genera un fichero `datadump.json` con los datos del proyecto, excluyendo tablas del sistema que no interesa importar de forma manual.\par
+\par
+\b 8.1 Problema de codificacion en Windows\b0\par
+Tal como sucede en el ejemplo de referencia, en Windows puede ocurrir que el fichero exportado no quede en UTF-8. Esto puede provocar problemas si despues se intenta importar ese volcado en otro motor de base de datos.\par
+\par
+Para corregirlo, el proyecto incluye `backend/convert-utf8.py`, que intenta leer primero en UTF-8 y, si no fuera posible, prueba codificaciones tipicas de Windows antes de generar `datadump_utf8.json` en UTF-8.\par
+\par
+El script se ejecuta asi:\par
+`py .\convert-utf8.py`\par
+\par
+\b 9. Como se haria la migracion de SQLite a MySQL\b0\par
+Aunque MySQL no esta implementado en el codigo, el enunciado valora que se explique como se realizaria esta migracion. Adaptando los conceptos del README de ejemplo, el proceso seria el siguiente.\par
+\par
+\b 9.1 Crear la base de datos MySQL\b0\par
+Por ejemplo:\par
+`CREATE DATABASE construction_material_control CHARACTER SET UTF8;`\par
+`GRANT ALL PRIVILEGES ON construction_material_control.* TO construction_user@localhost;`\par
+\par
+\b 9.2 Crear un fichero .env\b0\par
+El fichero se situaria en `backend/`, junto a `manage.py`, con informacion como esta:\par
+`DB_NAME=construction_material_control`\par
+`DB_USER=construction_user`\par
+`DB_PASSWORD=tu_password`\par
+`DB_HOST=localhost`\par
+`DB_PORT=3306`\par
+\par
+\b 9.3 Cambiar la configuracion de Django\b0\par
+En `backend/constru_app/settings.py` se sustituiria la configuracion SQLite por una configuracion para `django.db.backends.mysql`, leyendo los valores anteriores desde el entorno.\par
+\par
+\b 9.4 Crear las tablas en MySQL\b0\par
+Una vez actualizada la configuracion, se ejecutaria:\par
+`py .\manage.py migrate`\par
+\par
+Con ello Django crearia todas las tablas necesarias en MySQL.\par
+\par
+\b 9.5 Exportar los datos desde SQLite\b0\par
+Los datos existentes se exportarian con:\par
+`py .\manage.py dumpdata --natural-foreign --natural-primary -e contenttypes -e auth.permission --indent 4 --output datadump.json`\par
+\par
+\b 9.6 Convertir el volcado a UTF-8 si fuera necesario\b0\par
+En Windows, si la codificacion no fuera correcta, se ejecutaria:\par
+`py .\convert-utf8.py`\par
+\par
+\b 9.7 Importar los datos en MySQL\b0\par
+Con la base de datos MySQL ya creada y las tablas migradas, se cargarian los datos con:\par
+`py .\manage.py loaddata .\datadump_utf8.json`\par
+\par
+\b 9.8 Ejecutar la aplicacion\b0\par
+Por ultimo, el servidor se arrancaria con:\par
+`py .\manage.py runserver`\par
+\par
+De esta forma queda explicado, paso a paso, como se podria realizar la migracion aunque la implementacion entregada siga funcionando con SQLite.\par
+\par
+\b 10. Ejecucion del proyecto en local\b0\par
+Los pasos reales para ejecutar la aplicacion en el estado actual son:\par
+1. crear un entorno virtual\par
+2. activarlo\par
+3. instalar dependencias con `pip install -r requirements.txt`\par
+4. entrar en `backend/`\par
+5. ejecutar `py .\manage.py migrate`\par
+6. ejecutar `py .\manage.py bootstrap_demo` para disponer de usuarios y datos demo\par
+7. ejecutar `py .\manage.py createsuperuser` si se desea usar el admin\par
+8. ejecutar `py .\manage.py runserver`\par
+\par
+Con ello Django crea `backend/db.sqlite3` y deja la API operativa en local.\par
+\par
+\b 11. Tests y verificaciones\b0\par
+El proyecto incluye pruebas en `backend/projects/tests.py` que verifican:\par
+- que `Engineers` pueden crear proyectos\par
+- que `Workers` pueden listar proyectos pero no crearlos\par
+- que `Workers` pueden registrar materiales\par
+- que `Workers` no pueden actualizar materiales\par
+- que `Engineers` si pueden actualizar materiales\par
+- que la api personalizada enlaza correctamente proyectos y materiales\par
+- que el comando `bootstrap_demo` crea usuarios, tokens y datos demo reutilizables\par
+\par
+Comandos utiles:\par
+`py .\manage.py check`\par
+`py .\manage.py test projects`\par
+\par
+\b 12. Conclusion\b0\par
+Este proyecto demuestra como construir una API REST coherente con Django y Django REST Framework usando SQLite como base de datos real y funcional. A su vez, la memoria recoge de forma clara como se podria migrar la misma solucion a MySQL exportando los datos desde SQLite, resolviendo posibles problemas de codificacion en Windows e importando posteriormente el volcado en el nuevo sistema.\par
+\par
+La solucion resultante es facil de ejecutar, cumple los requisitos fundamentales del enunciado y mantiene una explicacion tecnica suficiente para justificar una futura evolucion a MySQL.\par
+}
