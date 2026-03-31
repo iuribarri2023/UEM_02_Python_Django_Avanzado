@@ -1,5 +1,5 @@
 ﻿# Construction Material Control API
-Alumno:Iñigo Uribarri Parada
+Alumno: Iñigo Uribarri Parada
 Fundamentos de backend con Python
 Ejercicio entregable
 
